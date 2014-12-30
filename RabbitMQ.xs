@@ -6,8 +6,13 @@
 #include "amqp_tcp_socket.h"
 #include "amqp_private.h"
 
-#define __REAL__DEBUG__(X)  X
-#define __DEBUG__(X) /* NOOP */
+#define __DEBUG_ENABLED__ 1
+
+#if __DEBUG_ENABLED__ == 1
+# define __DEBUG__(X)  X
+#else
+# define __DEBUG__(X) /* NOOP */
+#endif
 
 typedef amqp_connection_state_t Net__AMQP__RabbitMQ;
 
@@ -231,6 +236,14 @@ int internal_recv(HV *RETVAL, amqp_connection_state_t conn, int piggyback) {
       continue;
     }
     if (result != AMQP_STATUS_OK) break;
+    
+    __DEBUG__(
+        fprintf(
+            stderr,
+            "FRAME TYPE IS %hi\n",
+            frame.frame_type
+        );
+    );
 
     if (frame.frame_type != AMQP_FRAME_HEADER)
       Perl_croak(aTHX_ "Unexpected header %d!", frame.frame_type);
@@ -1184,6 +1197,16 @@ net_amqp_rabbitmq__publish(conn, channel, routing_key, body, options = NULL, pro
       if(NULL != (v = hv_fetch(options, "mandatory", strlen("mandatory"), 0))) mandatory = SvIV(*v) ? 1 : 0;
       if(NULL != (v = hv_fetch(options, "immediate", strlen("immediate"), 0))) immediate = SvIV(*v) ? 1 : 0;
       if(NULL != (v = hv_fetch(options, "exchange", strlen("exchange"), 0))) exchange_b = amqp_cstring_bytes(SvPV_nolen(*v));
+      __DEBUG__(
+        fprintf(
+            stderr,
+            "mandatory:%i - immediate:%i - exchange: >%*s<\n",
+            mandatory,
+            immediate,
+            (int)exchange_b.len,
+            (char*)exchange_b.bytes
+        );
+      );
     }
     properties.headers = amqp_empty_table;
     properties._flags = 0;
