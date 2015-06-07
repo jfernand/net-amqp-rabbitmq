@@ -2,7 +2,7 @@ package Net::AMQP::RabbitMQ;
 use strict;
 use warnings;
 
-our $VERSION = '0.310000';
+our $VERSION = '0.320000';
 
 use XSLoader;
 XSLoader::load "Net::AMQP::RabbitMQ", $VERSION;
@@ -61,14 +61,18 @@ C<$hostname> is the host to which a connection will be attempted.
 C<$options> is an optional hash respecting the following keys:
 
      {
-       user => $user,           #default 'guest'
-       password => $password,   #default 'guest'
-       port => $port,           #default 5672
-       vhost => $vhost,         #default '/'
-       channel_max => $cmax,    #default 0
-       frame_max => $fmax,      #default 131072
-       heartbeat => $hearbeat,  #default 0
-       timeout => $seconds      #default undef (no timeout)
+       user => $user,               #default 'guest'
+       password => $password,       #default 'guest'
+       port => $port,               #default 5672
+       vhost => $vhost,             #default '/'
+       channel_max => $cmax,        #default 0
+       frame_max => $fmax,          #default 131072
+       heartbeat => $hearbeat,      #default 0
+       timeout => $seconds,         #default undef (no timeout)
+			 ssl_enabled => 0,            #default 0, enable or disable SSL
+			 ssl_cacert_file => 'ca.pem', #default undef, unused if SSL isn't enabled
+			 ssl_cert_file => 'cert.pem', #default undef, unused if SSL isn't enabled
+			 ssl_key_file => 'key.pem',   #default undef, unused if SSL isn't enabled
      }
 
 =head2 disconnect()

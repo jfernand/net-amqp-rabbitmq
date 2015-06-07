@@ -22,7 +22,7 @@ WriteMakefile(
     OPTIMIZE        => $ENV{'OPTIMIZE'},
     CCFLAGS         => "$Config{ccflags} -I${Bin}",
     DEFINE          => "-DAMQ_PLATFORM='\"Perl_$^O_$^V\"'",
-    LIBS            =>['-lrt'],
+    LIBS            =>['-lrt', '-lssl -lcrypto'],
     PREREQ_PM       => {
         'Math::Int64'      => 0.34,
     },

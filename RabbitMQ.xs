@@ -4,6 +4,7 @@
 
 #include "amqp.h"
 #include "amqp_tcp_socket.h"
+#include "amqp_ssl_socket.h"
 /* For struct timeval */
 #include "amqp_timer.h"
 #include "amqp_private.h"
@@ -346,7 +347,7 @@ int internal_recv(HV *RETVAL, amqp_connection_state_t conn, int piggyback, int t
 
         switch (header_entry->value.kind) {
 
-	    case AMQP_FIELD_KIND_BOOLEAN:
+      case AMQP_FIELD_KIND_BOOLEAN:
             hv_store( headers,
                 header_entry->key.bytes, header_entry->key.len,
                 newSViv(header_entry->value.value.boolean),
@@ -899,6 +900,12 @@ net_amqp_rabbitmq_connect(conn, hostname, options)
     int heartbeat = 0;
     double timeout = -1;
     struct timeval to;
+    int status = 0;
+    int ssl_enabled = 0;
+    char *ssl_cacert_file = "\0";
+    char *ssl_cert_file = "\0";
+    char *ssl_key_file = "\0";
+    
   CODE:
     str_from_hv(options, user);
     str_from_hv(options, password);
@@ -908,14 +915,48 @@ net_amqp_rabbitmq_connect(conn, hostname, options)
     int_from_hv(options, heartbeat);
     int_from_hv(options, port);
     double_from_hv(options, timeout);
+
+    /* SSL stuff */
+    int_from_hv(options, ssl_enabled);
+    str_from_hv(options, ssl_cacert_file);
+    str_from_hv(options, ssl_cert_file);
+    str_from_hv(options, ssl_key_file);
+
     if(timeout >= 0) {
      to.tv_sec = floor(timeout);
      to.tv_usec = 1000000.0 * (timeout - floor(timeout));
     }
-    sock = amqp_tcp_socket_new(conn);
 
-    if (!sock) {
-      Perl_croak(aTHX_ "error creating TCP socket");
+    if (ssl_enabled) {
+
+      sock = amqp_ssl_socket_new(conn);
+      if (!sock) {
+        Perl_croak(aTHX_ "error creating SSL socket");
+      }
+      
+      // Set the SSL CA cert
+      if (ssl_cacert_file[0] != '\0') {
+        status = amqp_ssl_socket_set_cacert(sock, ssl_cacert_file);
+        if (status) {
+          Perl_croak(aTHX_ "setting CA certificate");
+        }
+      }
+      
+      // Set the SSL key and cert
+      if (ssl_cert_file[0] != '\0') {
+        status = amqp_ssl_socket_set_key(sock, ssl_cert_file, ssl_key_file);
+        if (status) {
+          Perl_croak(aTHX_ "setting client cert");
+        }
+      }
+      
+    } else {
+
+      sock = amqp_tcp_socket_new(conn);
+      if (!sock) {
+        Perl_croak(aTHX_ "error creating TCP socket");
+      }
+
     }
 
     die_on_error(aTHX_ amqp_socket_open_noblock(sock, hostname, port, (timeout<0)?NULL:&to), conn, "opening TCP socket");
